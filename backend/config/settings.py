@@ -112,6 +112,10 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "documents.User"
 
+print("MYSQLHOST =", os.environ.get("MYSQLHOST"))
+print("MYSQLDATABASE =", os.environ.get("MYSQLDATABASE"))
+print("MYSQLUSER =", os.environ.get("MYSQLUSER"))
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
