@@ -104,30 +104,72 @@ def _user_documents(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_view(request):
-    email = str(request.data.get("email", "")).strip().lower()
-    password = request.data.get("password", "")
-    if not email or not password:
-        return Response({"detail": "Email et mot de passe obligatoires."}, status=400)
+    identifier = request.data.get("email") or request.data.get("username")
+    password = request.data.get("password")
 
-    try:
-        user = User.objects.get(email__iexact=email)
-    except User.DoesNotExist:
-        return Response({"detail": "Email ou mot de passe incorrect."}, status=401)
+    if not identifier or not password:
+        return Response(
+            {"detail": "Email/nom d'utilisateur et mot de passe obligatoires."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    identifier = identifier.strip()
+
+    # Try email first
+    user = User.objects.filter(
+        email__iexact=identifier
+    ).first()
+
+    # If not found, try username
+    if user is None:
+        user = User.objects.filter(
+            username__iexact=identifier
+        ).first()
+
+    if user is None:
+        return Response(
+            {"detail": "Email ou mot de passe incorrect."},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
 
     if not user.is_active:
-        return Response({"detail": "Ce compte est désactivé."}, status=403)
-    if authenticate(username=user.username, password=password) is None:
-        return Response({"detail": "Email ou mot de passe incorrect."}, status=401)
+        return Response(
+            {"detail": "Ce compte est désactivé."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
-    PersonalDrive.objects.get_or_create(
-        user=user,
-        defaults={"nom": f"Personal Drive {user.first_name or user.username}"},
+    authenticated_user = authenticate(
+        username=user.username,
+        password=password,
     )
-    refresh = RefreshToken.for_user(user)
-    data = UserSerializer(user).data
-    data.update({"refresh": str(refresh), "access": str(refresh.access_token)})
-    return Response(data)
 
+    if authenticated_user is None:
+        return Response(
+            {"detail": "Email ou mot de passe incorrect."},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    refresh = RefreshToken.for_user(user)
+
+    return Response({
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "nom": (
+            f"{user.first_name} {user.last_name}"
+        ).strip() or user.username,
+        "role": user.role,
+        "initiales": (
+            (
+                user.first_name[:1]
+                + user.last_name[:1]
+            ).upper()
+            if user.first_name and user.last_name
+            else user.username[:2].upper()
+        ),
+        "refresh": str(refresh),
+        "access": str(refresh.access_token),
+    })
 
 @api_view(["GET"])
 def me_view(request):
@@ -409,15 +451,25 @@ def users_create(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if User.objects.filter(username=username).exists():
+    if len(password) < 8:
+        return Response(
+            {"detail": "Le mot de passe doit contenir au moins 8 caractères."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if User.objects.filter(
+        username__iexact=username
+    ).exists():
         return Response(
             {"detail": "Ce nom d'utilisateur existe déjà."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if User.objects.filter(email=email).exists():
+    if User.objects.filter(
+        email__iexact=email
+    ).exists():
         return Response(
-            {"detail": "Cet email est déjà utilisé."},
+            {"detail": "Cet email existe déjà."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -427,13 +479,16 @@ def users_create(request):
         password=password,
         first_name=first_name,
         last_name=last_name,
-        role="user",
     )
+
+    user.role = "user"
+    user.is_active = True
+    user.save()
 
     PersonalDrive.objects.get_or_create(
         user=user,
         defaults={
-            "nom": f"Personal Drive {user.username}"
+            "nom": f"Personal Drive {username}"
         },
     )
 

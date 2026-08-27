@@ -5,7 +5,36 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => authService.getUser());
-  const login = async (email, password) => { const u = await authService.login(email, password); setUser(u); return u; };
+ async function login(email, password) {
+  const response = await api.post(
+    "/auth/login/",
+    {
+      email,
+      password,
+    }
+  );
+
+  const data = response.data;
+
+  localStorage.setItem(
+    "access",
+    data.access
+  );
+
+  localStorage.setItem(
+    "refresh",
+    data.refresh
+  );
+
+  localStorage.setItem(
+    "user",
+    JSON.stringify(data)
+  );
+
+  setUser(data);
+
+  return data;
+}
   const logout = () => { authService.logout(); setUser(null); };
   const value = useMemo(() => ({
     user,

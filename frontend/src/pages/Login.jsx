@@ -7,35 +7,52 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  // login / register
   const [mode, setMode] = useState("login");
 
-  // Login
-  const [username, setUsername] = useState("");
+  // ==============================
+  // LOGIN
+  // ==============================
+
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Register
+  // ==============================
+  // REGISTER
+  // ==============================
+
   const [registerData, setRegisterData] = useState({
+    first_name: "",
+    last_name: "",
     username: "",
     email: "",
     password: "",
     confirmPassword: "",
-    first_name: "",
-    last_name: "",
   });
+
+  // ==============================
+  // UI
+  // ==============================
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  async function handleLogin(e) {
-    e.preventDefault();
+  // ==============================
+  // LOGIN
+  // ==============================
+
+  async function handleLogin(event) {
+    event.preventDefault();
 
     setError("");
     setSuccess("");
 
-    if (!username.trim() || !password) {
+    const cleanEmail = email.trim();
+
+    if (!cleanEmail || !password) {
       setError(
-        "Veuillez remplir tous les champs."
+        "Veuillez saisir votre email et votre mot de passe."
       );
       return;
     }
@@ -43,39 +60,59 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(username.trim(), password);
+      await login(cleanEmail, password);
 
       navigate("/dashboard");
     } catch (err) {
-      console.error(err);
+      console.error("Erreur login :", err);
 
       setError(
         err?.message ||
-          "Nom d'utilisateur ou mot de passe incorrect."
+          "Email ou mot de passe incorrect."
       );
     } finally {
       setLoading(false);
     }
   }
 
-  function handleRegisterChange(e) {
-    const { name, value } = e.target;
+  // ==============================
+  // REGISTER INPUT
+  // ==============================
 
-    setRegisterData((prev) => ({
-      ...prev,
+  function handleRegisterChange(event) {
+    const { name, value } = event.target;
+
+    setRegisterData((previous) => ({
+      ...previous,
       [name]: value,
     }));
   }
 
-  async function handleRegister(e) {
-    e.preventDefault();
+  // ==============================
+  // REGISTER
+  // ==============================
+
+  async function handleRegister(event) {
+    event.preventDefault();
 
     setError("");
     setSuccess("");
 
+    const username =
+      registerData.username.trim();
+
+    const registerEmail =
+      registerData.email.trim();
+
+    const firstName =
+      registerData.first_name.trim();
+
+    const lastName =
+      registerData.last_name.trim();
+
     if (
-      !registerData.username.trim() ||
-      !registerData.email.trim() ||
+      !username ||
+      !registerEmail ||
       !registerData.password ||
       !registerData.confirmPassword
     ) {
@@ -95,7 +132,9 @@ export default function Login() {
       return;
     }
 
-    if (registerData.password.length < 8) {
+    if (
+      registerData.password.length < 8
+    ) {
       setError(
         "Le mot de passe doit contenir au moins 8 caractères."
       );
@@ -106,78 +145,111 @@ export default function Login() {
 
     try {
       await userService.create({
-        username:
-          registerData.username.trim(),
-        email:
-          registerData.email.trim(),
-        password:
-          registerData.password,
-        first_name:
-          registerData.first_name.trim(),
-        last_name:
-          registerData.last_name.trim(),
+        username: username,
+        email: registerEmail,
+        password: registerData.password,
+        first_name: firstName,
+        last_name: lastName,
         role: "Utilisateur",
       });
 
+      // Registration succeeded
       setSuccess(
-        "Compte créé avec succès. Vous pouvez maintenant vous connecter."
+        "Compte créé avec succès ! Vous pouvez maintenant vous connecter."
       );
 
-      // Put username in login form
-      setUsername(
-        registerData.username.trim()
-      );
+      // Automatically put the email in login form
+      setEmail(registerEmail);
 
-      // Reset register form
+      // Reset registration form
       setRegisterData({
+        first_name: "",
+        last_name: "",
         username: "",
         email: "",
         password: "",
         confirmPassword: "",
-        first_name: "",
-        last_name: "",
       });
 
-      // Go back to login
+      // Switch to login after a short delay
       setTimeout(() => {
         setMode("login");
         setSuccess("");
+        setPassword("");
       }, 1500);
     } catch (err) {
-      console.error(err);
-
-      setError(
-        err?.message ||
-          "Impossible de créer le compte."
+      console.error(
+        "Erreur création compte :",
+        err
       );
+
+      let message =
+        "Impossible de créer le compte.";
+
+      if (err?.response?.data?.detail) {
+        message = err.response.data.detail;
+      } else if (err?.message) {
+        message = err.message;
+      }
+
+      setError(message);
     } finally {
       setLoading(false);
     }
+  }
+
+  // ==============================
+  // SWITCH TO REGISTER
+  // ==============================
+
+  function openRegister() {
+    setMode("register");
+    setError("");
+    setSuccess("");
+    setPassword("");
+  }
+
+  // ==============================
+  // SWITCH TO LOGIN
+  // ==============================
+
+  function openLogin() {
+    setMode("login");
+    setError("");
+    setSuccess("");
   }
 
   return (
     <div className="login-page">
       <div className="login-card">
 
-        {/* Logo */}
+        {/* ================================= */}
+        {/* LOGO */}
+        {/* ================================= */}
+
         <div className="login-logo">
           <div className="logo-icon">
             <i className="bi bi-archive"></i>
           </div>
 
           <div>
-            <h2>DocVault</h2>
+            <strong>DocVault</strong>
+
             <span>
               Gestion des documents
             </span>
           </div>
         </div>
 
-        {/* Title */}
+        {/* ================================= */}
+        {/* TITLE */}
+        {/* ================================= */}
+
         <div className="login-title">
           {mode === "login" ? (
             <>
               <h1>Connexion</h1>
+
               <p>
                 Connectez-vous à votre espace
                 documentaire.
@@ -186,14 +258,19 @@ export default function Login() {
           ) : (
             <>
               <h1>Créer un compte</h1>
+
               <p>
-                Créez votre espace documentaire.
+                Créez votre compte DocVault
+                pour accéder à votre espace.
               </p>
             </>
           )}
         </div>
 
-        {/* Error */}
+        {/* ================================= */}
+        {/* ERROR */}
+        {/* ================================= */}
+
         {error && (
           <div className="alert alert-danger">
             <i className="bi bi-exclamation-circle me-2"></i>
@@ -201,7 +278,10 @@ export default function Login() {
           </div>
         )}
 
-        {/* Success */}
+        {/* ================================= */}
+        {/* SUCCESS */}
+        {/* ================================= */}
+
         {success && (
           <div className="alert alert-success">
             <i className="bi bi-check-circle me-2"></i>
@@ -209,46 +289,48 @@ export default function Login() {
           </div>
         )}
 
-        {/* ============================ */}
+        {/* ================================= */}
         {/* LOGIN FORM */}
-        {/* ============================ */}
+        {/* ================================= */}
 
         {mode === "login" && (
           <form onSubmit={handleLogin}>
 
             <div className="form-group mb-3">
-              <label htmlFor="username">
-                Nom d'utilisateur
+              <label htmlFor="loginEmail">
+                Email
               </label>
 
               <input
-                id="username"
-                type="text"
+                id="loginEmail"
+                name="email"
+                type="email"
                 className="form-control"
-                value={username}
-                onChange={(e) =>
-                  setUsername(e.target.value)
+                placeholder="exemple@email.com"
+                value={email}
+                onChange={(event) =>
+                  setEmail(event.target.value)
                 }
-                placeholder="Votre nom d'utilisateur"
-                autoComplete="username"
+                autoComplete="email"
                 required
               />
             </div>
 
             <div className="form-group mb-3">
-              <label htmlFor="password">
+              <label htmlFor="loginPassword">
                 Mot de passe
               </label>
 
               <input
-                id="password"
+                id="loginPassword"
+                name="password"
                 type="password"
                 className="form-control"
-                value={password}
-                onChange={(e) =>
-                  setPassword(e.target.value)
-                }
                 placeholder="Votre mot de passe"
+                value={password}
+                onChange={(event) =>
+                  setPassword(event.target.value)
+                }
                 autoComplete="current-password"
                 required
               />
@@ -259,19 +341,34 @@ export default function Login() {
               className="btn btn-primary w-100"
               disabled={loading}
             >
-              {loading
-                ? "Connexion..."
-                : "Se connecter"}
+              {loading ? (
+                <>
+                  <span
+                    className="spinner-border spinner-border-sm me-2"
+                    role="status"
+                  ></span>
+
+                  Connexion...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-box-arrow-in-right me-2"></i>
+                  Se connecter
+                </>
+              )}
             </button>
+
           </form>
         )}
 
-        {/* ============================ */}
+        {/* ================================= */}
         {/* REGISTER FORM */}
-        {/* ============================ */}
+        {/* ================================= */}
 
         {mode === "register" && (
           <form onSubmit={handleRegister}>
+
+            {/* First / Last name */}
 
             <div className="row">
 
@@ -285,13 +382,14 @@ export default function Login() {
                   name="first_name"
                   type="text"
                   className="form-control"
+                  placeholder="Prénom"
                   value={
                     registerData.first_name
                   }
                   onChange={
                     handleRegisterChange
                   }
-                  placeholder="Prénom"
+                  autoComplete="given-name"
                 />
               </div>
 
@@ -305,17 +403,20 @@ export default function Login() {
                   name="last_name"
                   type="text"
                   className="form-control"
+                  placeholder="Nom"
                   value={
                     registerData.last_name
                   }
                   onChange={
                     handleRegisterChange
                   }
-                  placeholder="Nom"
+                  autoComplete="family-name"
                 />
               </div>
 
             </div>
+
+            {/* Username */}
 
             <div className="form-group mb-3">
               <label htmlFor="registerUsername">
@@ -327,16 +428,19 @@ export default function Login() {
                 name="username"
                 type="text"
                 className="form-control"
+                placeholder="Nom d'utilisateur"
                 value={
                   registerData.username
                 }
                 onChange={
                   handleRegisterChange
                 }
-                placeholder="Nom d'utilisateur"
+                autoComplete="username"
                 required
               />
             </div>
+
+            {/* Email */}
 
             <div className="form-group mb-3">
               <label htmlFor="registerEmail">
@@ -348,16 +452,19 @@ export default function Login() {
                 name="email"
                 type="email"
                 className="form-control"
+                placeholder="exemple@email.com"
                 value={
                   registerData.email
                 }
                 onChange={
                   handleRegisterChange
                 }
-                placeholder="exemple@email.com"
+                autoComplete="email"
                 required
               />
             </div>
+
+            {/* Password */}
 
             <div className="form-group mb-3">
               <label htmlFor="registerPassword">
@@ -369,17 +476,20 @@ export default function Login() {
                 name="password"
                 type="password"
                 className="form-control"
+                placeholder="Minimum 8 caractères"
                 value={
                   registerData.password
                 }
                 onChange={
                   handleRegisterChange
                 }
-                placeholder="Minimum 8 caractères"
                 autoComplete="new-password"
+                minLength={8}
                 required
               />
             </div>
+
+            {/* Confirm password */}
 
             <div className="form-group mb-3">
               <label htmlFor="confirmPassword">
@@ -391,35 +501,52 @@ export default function Login() {
                 name="confirmPassword"
                 type="password"
                 className="form-control"
+                placeholder="Retapez votre mot de passe"
                 value={
                   registerData.confirmPassword
                 }
                 onChange={
                   handleRegisterChange
                 }
-                placeholder="Retapez le mot de passe"
                 autoComplete="new-password"
+                minLength={8}
                 required
               />
             </div>
+
+            {/* Register button */}
 
             <button
               type="submit"
               className="btn btn-primary w-100"
               disabled={loading}
             >
-              {loading
-                ? "Création..."
-                : "Créer mon compte"}
+              {loading ? (
+                <>
+                  <span
+                    className="spinner-border spinner-border-sm me-2"
+                    role="status"
+                  ></span>
+
+                  Création...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-person-plus me-2"></i>
+                  Créer mon compte
+                </>
+              )}
             </button>
+
           </form>
         )}
 
-        {/* ============================ */}
-        {/* SWITCH */}
-        {/* ============================ */}
+        {/* ================================= */}
+        {/* SWITCH LOGIN / REGISTER */}
+        {/* ================================= */}
 
         <div className="login-switch">
+
           {mode === "login" ? (
             <>
               <span>
@@ -429,11 +556,7 @@ export default function Login() {
               <button
                 type="button"
                 className="btn btn-link p-0"
-                onClick={() => {
-                  setMode("register");
-                  setError("");
-                  setSuccess("");
-                }}
+                onClick={openRegister}
               >
                 Créer un compte
               </button>
@@ -447,16 +570,13 @@ export default function Login() {
               <button
                 type="button"
                 className="btn btn-link p-0"
-                onClick={() => {
-                  setMode("login");
-                  setError("");
-                  setSuccess("");
-                }}
+                onClick={openLogin}
               >
                 Se connecter
               </button>
             </>
           )}
+
         </div>
 
       </div>
