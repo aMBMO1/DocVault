@@ -382,3 +382,62 @@ def storage_info(request):
             2
         ) if total_bytes else 0,
     })
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def users_create(request):
+    username = request.data.get("username", "").strip()
+    email = request.data.get("email", "").strip()
+    password = request.data.get("password", "")
+    first_name = request.data.get("first_name", "").strip()
+    last_name = request.data.get("last_name", "").strip()
+
+    if not username:
+        return Response(
+            {"detail": "Nom d'utilisateur obligatoire."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not email:
+        return Response(
+            {"detail": "Email obligatoire."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not password:
+        return Response(
+            {"detail": "Mot de passe obligatoire."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if User.objects.filter(username=username).exists():
+        return Response(
+            {"detail": "Ce nom d'utilisateur existe déjà."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if User.objects.filter(email=email).exists():
+        return Response(
+            {"detail": "Cet email est déjà utilisé."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user = User.objects.create_user(
+        username=username,
+        email=email,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+        role="user",
+    )
+
+    PersonalDrive.objects.get_or_create(
+        user=user,
+        defaults={
+            "nom": f"Personal Drive {user.username}"
+        },
+    )
+
+    return Response(
+        UserSerializer(user).data,
+        status=status.HTTP_201_CREATED,
+    )
