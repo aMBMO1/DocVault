@@ -235,9 +235,7 @@ export default function Login() {
           <div>
             <strong>DocVault</strong>
 
-            <span>
-              Gestion des documents
-            </span>
+
           </div>
         </div>
 
