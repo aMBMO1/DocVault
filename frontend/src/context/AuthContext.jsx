@@ -14,13 +14,12 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   // =========================================
-  // CHECK SAVED LOGIN
+  // RESTORE SESSION
   // =========================================
 
   useEffect(() => {
     async function loadUser() {
       const access = localStorage.getItem("access");
-      const savedUser = localStorage.getItem("user");
 
       if (!access) {
         setLoading(false);
@@ -28,18 +27,15 @@ export function AuthProvider({ children }) {
       }
 
       try {
-        if (savedUser) {
-          setUser(JSON.parse(savedUser));
-        }
+        const response = await api.get("/me/");
 
-        // Verify token with backend
-        const me = await api.get("/me/");
+        const currentUser = response.data;
 
-        setUser(me);
+        setUser(currentUser);
 
         localStorage.setItem(
           "user",
-          JSON.stringify(me)
+          JSON.stringify(currentUser)
         );
       } catch (error) {
         console.error(
@@ -65,34 +61,50 @@ export function AuthProvider({ children }) {
   // =========================================
 
   async function login(email, password) {
-    const response = await api.post(
-      "/auth/login/",
-      {
-        email: email.trim(),
-        password,
+    try {
+      const response = await api.post(
+        "/auth/login/",
+        {
+          email: email.trim(),
+          password,
+        }
+      );
+
+      const data = response.data;
+
+      // Check that Django really returned tokens
+      if (!data.access || !data.refresh) {
+        throw new Error(
+          "Le serveur n'a pas retourné les tokens d'authentification."
+        );
       }
-    );
 
-    const data = response;
+      localStorage.setItem(
+        "access",
+        data.access
+      );
 
-    localStorage.setItem(
-      "access",
-      data.access
-    );
+      localStorage.setItem(
+        "refresh",
+        data.refresh
+      );
 
-    localStorage.setItem(
-      "refresh",
-      data.refresh
-    );
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data)
+      );
 
-    localStorage.setItem(
-      "user",
-      JSON.stringify(data)
-    );
+      setUser(data);
 
-    setUser(data);
+      return data;
+    } catch (error) {
+      console.error(
+        "Erreur connexion :",
+        error
+      );
 
-    return data;
+      throw error;
+    }
   }
 
   // =========================================
@@ -108,7 +120,7 @@ export function AuthProvider({ children }) {
   }
 
   // =========================================
-  // ROLE
+  // AUTH STATE
   // =========================================
 
   const isAuthenticated = !!user;
@@ -119,7 +131,7 @@ export function AuthProvider({ children }) {
     user?.is_superuser === true;
 
   // =========================================
-  // CONTEXT
+  // PROVIDER
   // =========================================
 
   return (
@@ -154,4 +166,5 @@ export function useAuth() {
 
   return context;
 }
+
 export default AuthContext;
