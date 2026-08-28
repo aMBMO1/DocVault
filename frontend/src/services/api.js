@@ -1,14 +1,21 @@
 import axios from "axios";
 
-let API_URL = import.meta.env.VITE_API_URL || "";
+const rawApiUrl = import.meta.env.VITE_API_URL;
 
-// Remove accidental trailing slash
+if (!rawApiUrl) {
+  console.error(
+    "VITE_API_URL is not defined. Configure it in Railway."
+  );
+}
+
+let API_URL = (rawApiUrl || "").trim();
+
+// Remove trailing slash
 API_URL = API_URL.replace(/\/+$/, "");
 
-// If the backend URL doesn't already end with /api,
-// add it automatically.
-if (!API_URL.endsWith("/api")) {
-  API_URL = `${API_URL}/api`;
+// Add /api automatically if needed
+if (API_URL && !API_URL.endsWith("/api")) {
+  API_URL += "/api";
 }
 
 const api = axios.create({
@@ -18,18 +25,40 @@ const api = axios.create({
   },
 });
 
-// Add JWT token to protected requests
+// ==========================================
+// ADD ACCESS TOKEN TO PROTECTED REQUESTS
+// ==========================================
+
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("access");
+    const token =
+      localStorage.getItem("access");
 
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization =
+        `Bearer ${token}`;
     }
 
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// ==========================================
+// HANDLE AUTH ERRORS
+// ==========================================
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.warn(
+        "Authentication required."
+      );
+    }
+
     return Promise.reject(error);
   }
 );

@@ -13,9 +13,9 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // =========================================
+  // ==========================================
   // RESTORE SESSION
-  // =========================================
+  // ==========================================
 
   useEffect(() => {
     async function loadUser() {
@@ -28,9 +28,11 @@ export function AuthProvider({ children }) {
       }
 
       try {
-        const response = await api.get("/me/");
+        const response =
+          await api.get("/me/");
 
-        const currentUser = response.data;
+        const currentUser =
+          response.data;
 
         setUser(currentUser);
 
@@ -40,7 +42,7 @@ export function AuthProvider({ children }) {
         );
       } catch (error) {
         console.error(
-          "Session invalide :",
+          "Erreur restauration session:",
           error
         );
 
@@ -57,9 +59,9 @@ export function AuthProvider({ children }) {
     loadUser();
   }, []);
 
-  // =========================================
+  // ==========================================
   // LOGIN
-  // =========================================
+  // ==========================================
 
   async function login(email, password) {
     const response = await api.post(
@@ -100,9 +102,9 @@ export function AuthProvider({ children }) {
     return data;
   }
 
-  // =========================================
+  // ==========================================
   // LOGOUT
-  // =========================================
+  // ==========================================
 
   function logout() {
     localStorage.removeItem("access");
@@ -112,20 +114,21 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
-  // =========================================
+  // ==========================================
   // AUTH STATE
-  // =========================================
+  // ==========================================
 
-  const isAuthenticated = Boolean(user);
+  const isAuthenticated =
+    Boolean(user);
 
   const isAdmin =
     user?.role === "admin" ||
     user?.is_staff === true ||
     user?.is_superuser === true;
 
-  // =========================================
-  // CONTEXT
-  // =========================================
+  // ==========================================
+  // PROVIDER
+  // ==========================================
 
   return (
     <AuthContext.Provider
@@ -144,12 +147,13 @@ export function AuthProvider({ children }) {
   );
 }
 
-// =========================================
+// ==========================================
 // HOOK
-// =========================================
+// ==========================================
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context =
+    useContext(AuthContext);
 
   if (!context) {
     throw new Error(
