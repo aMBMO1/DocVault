@@ -4,19 +4,21 @@ const rawApiUrl = import.meta.env.VITE_API_URL;
 
 if (!rawApiUrl) {
   console.error(
-    "VITE_API_URL is not defined. Configure it in Railway."
+    "ERROR: VITE_API_URL is not configured."
   );
 }
 
 let API_URL = (rawApiUrl || "").trim();
 
-// Remove trailing slash
+// Remove trailing slashes
 API_URL = API_URL.replace(/\/+$/, "");
 
-// Add /api automatically if needed
+// Add /api automatically
 if (API_URL && !API_URL.endsWith("/api")) {
   API_URL += "/api";
 }
+
+console.log("API BASE URL:", API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -26,7 +28,7 @@ const api = axios.create({
 });
 
 // ==========================================
-// ADD ACCESS TOKEN TO PROTECTED REQUESTS
+// JWT
 // ==========================================
 
 api.interceptors.request.use(
@@ -42,23 +44,6 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// ==========================================
-// HANDLE AUTH ERRORS
-// ==========================================
-
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      console.warn(
-        "Authentication required."
-      );
-    }
-
     return Promise.reject(error);
   }
 );
