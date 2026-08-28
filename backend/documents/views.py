@@ -172,8 +172,11 @@ def login_view(request):
     })
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def me_view(request):
-    return Response(UserSerializer(request.user).data)
+    return Response(
+        UserSerializer(request.user).data
+    )
 
 
 @api_view(["GET"])
