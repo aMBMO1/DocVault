@@ -109,6 +109,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+BACKEND_PUBLIC_URL = os.environ.get(
+    "BACKEND_PUBLIC_URL",
+    ""
+).rstrip("/")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "documents.User"
 
