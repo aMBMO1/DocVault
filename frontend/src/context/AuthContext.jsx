@@ -19,9 +19,10 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     async function loadUser() {
-      const access = localStorage.getItem("access");
+      const accessToken =
+        localStorage.getItem("access");
 
-      if (!access) {
+      if (!accessToken) {
         setLoading(false);
         return;
       }
@@ -61,50 +62,42 @@ export function AuthProvider({ children }) {
   // =========================================
 
   async function login(email, password) {
-    try {
-      const response = await api.post(
-        "/auth/login/",
-        {
-          email: email.trim(),
-          password,
-        }
-      );
-
-      const data = response.data;
-
-      // Check that Django really returned tokens
-      if (!data.access || !data.refresh) {
-        throw new Error(
-          "Le serveur n'a pas retourné les tokens d'authentification."
-        );
+    const response = await api.post(
+      "/auth/login/",
+      {
+        email: email.trim(),
+        password: password,
       }
+    );
 
-      localStorage.setItem(
-        "access",
-        data.access
+    const data = response.data;
+
+    if (!data.access) {
+      throw new Error(
+        "Le serveur n'a pas retourné de token d'accès."
       );
+    }
 
+    localStorage.setItem(
+      "access",
+      data.access
+    );
+
+    if (data.refresh) {
       localStorage.setItem(
         "refresh",
         data.refresh
       );
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data)
-      );
-
-      setUser(data);
-
-      return data;
-    } catch (error) {
-      console.error(
-        "Erreur connexion :",
-        error
-      );
-
-      throw error;
     }
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify(data)
+    );
+
+    setUser(data);
+
+    return data;
   }
 
   // =========================================
@@ -123,7 +116,7 @@ export function AuthProvider({ children }) {
   // AUTH STATE
   // =========================================
 
-  const isAuthenticated = !!user;
+  const isAuthenticated = Boolean(user);
 
   const isAdmin =
     user?.role === "admin" ||
@@ -131,7 +124,7 @@ export function AuthProvider({ children }) {
     user?.is_superuser === true;
 
   // =========================================
-  // PROVIDER
+  // CONTEXT
   // =========================================
 
   return (
