@@ -10,10 +10,10 @@ if (!rawApiUrl) {
 
 let API_URL = (rawApiUrl || "").trim();
 
-// Remove trailing slashes
+// Remove trailing slash
 API_URL = API_URL.replace(/\/+$/, "");
 
-// Add /api automatically
+// Add /api automatically if needed
 if (API_URL && !API_URL.endsWith("/api")) {
   API_URL += "/api";
 }
@@ -28,7 +28,7 @@ const api = axios.create({
 });
 
 // ==========================================
-// JWT
+// REQUEST INTERCEPTOR
 // ==========================================
 
 api.interceptors.request.use(
@@ -36,14 +36,44 @@ api.interceptors.request.use(
     const token =
       localStorage.getItem("access");
 
+    // JWT
     if (token) {
       config.headers.Authorization =
         `Bearer ${token}`;
     }
 
+    // IMPORTANT:
+    // If we are sending FormData, do NOT force
+    // application/json.
+    //
+    // Axios/browser will automatically generate:
+    // multipart/form-data; boundary=...
+    if (
+      config.data instanceof FormData
+    ) {
+      delete config.headers["Content-Type"];
+    }
+
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// ==========================================
+// RESPONSE INTERCEPTOR
+// ==========================================
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error(
+      "API Error:",
+      error?.response?.status,
+      error?.response?.data || error.message
+    );
+
     return Promise.reject(error);
   }
 );

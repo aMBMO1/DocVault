@@ -48,7 +48,9 @@ export const documentService = {
 
     formData.append(
       "name",
-      data.name || data.file.name
+      data.name ||
+        data.file?.name ||
+        ""
     );
 
     formData.append(
@@ -58,7 +60,7 @@ export const documentService = {
 
     formData.append(
       "categoryId",
-      data.categoryId
+      String(data.categoryId)
     );
 
     formData.append(
