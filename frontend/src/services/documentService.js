@@ -1,6 +1,6 @@
 import api from "./api";
 
-const documentService = {
+export const documentService = {
   // =========================================
   // GET ALL DOCUMENTS
   // =========================================
@@ -68,12 +68,7 @@ const documentService = {
 
     const response = await api.post(
       "/documents/create/",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
+      formData
     );
 
     return response.data;
